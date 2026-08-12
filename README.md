@@ -2,7 +2,7 @@
 
 一个运行在 iOS 上的 E-Hentai / ExHentai 阅读器，基于 [Scripting](https://scripting.fun) 应用构建，界面采用 iOS 26 风格的 Liquid Glass 液态玻璃材质。
 
-> 本项目基于 JSEhViewer 修改而来
+> 本项目基于 [JSEhViewer](https://github.com/Gandum2077/JSEhViewer) 修改而来
 
 ---
 
