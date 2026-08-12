@@ -70,8 +70,8 @@
 
 ```
 SEhViewer/
-├── index.tsx      # 主界面与全部 UI（约 3400 行）
-├── api.ts         # 网络层：请求、重试、HTML 解析、Cookie 管理
+├── index.tsx      # 主界面与全部 UI
+├── api.ts         # 请求、重试、HTML 解析、Cookie 管理
 ├── types.ts       # 类型定义与工具函数
 ├── browser.tsx    # Safari 浏览器脚本（Cookie 抓取助手）
 └── script.json    # Scripting 项目配置
