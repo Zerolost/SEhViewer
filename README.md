@@ -1,6 +1,6 @@
 # SEhViewer
 
-一个运行在 iOS 上的 E-Hentai / ExHentai 阅读器，基于 [Scripting](https://scripting.fun) 应用构建，界面采用 iOS 26 风格的 Liquid Glass 液态玻璃材质。
+一个运行在 iOS 上的 E-Hentai / ExHentai 阅读器，基于 [Scripting](https://apps.apple.com/cn/app/scripting/id6479691128) 应用构建，界面采用 iOS 26 风格的 Liquid Glass 液态玻璃材质。
 
 > 本项目基于 [JSEhViewer](https://github.com/Gandum2077/JSEhViewer) 修改而来
 
@@ -54,7 +54,7 @@
 
 ## 安装
 
-1. 在 iPhone / iPad 上安装 [Scripting](https://scripting.fun)（App Store）
+1. 在 iPhone / iPad 上安装 [Scripting](https://apps.apple.com/cn/app/scripting/id6479691128)（App Store）
 2. [点此](https://www.scripting.fun/import_scripts/?urls=%5B%22https%3A%2F%2Fraw.githubusercontent.com%2FZerolost%2FSEhViewer%2Fmain%2Fdocs%2FSEhViewer.scripting%22%5D)或将将本仓库 Releases 导入 Scripting 即可
 3. 运行 SEhViewer 项目开始体验
 
