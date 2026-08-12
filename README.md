@@ -10,11 +10,11 @@
 
 | 首页 / 推荐 | 搜索 | 详情页 |
 | --- | --- | --- |
-| ![首页](docs/screenshots/home.png) | ![搜索](docs/screenshots/search.png) | ![详情页](docs/screenshots/detail.png) |
+| ![首页](docs/screenshots/home.jpeg) | ![搜索](docs/screenshots/search.jpeg) | ![详情页](docs/screenshots/detail.jpeg) |
 
 | 阅读器（单张） | 阅读器（拼接滚动） | 设置 |
 | --- | --- | --- |
-| ![阅读器](docs/screenshots/reader.png) | ![滚动阅读](docs/screenshots/stitched.png) | ![设置](docs/screenshots/settings.png) |
+| ![阅读器](docs/screenshots/reader.jpeg) | ![滚动阅读](docs/screenshots/stitched.jpeg) | ![设置](docs/screenshots/settings.jpeg) |
 
 ---
 
