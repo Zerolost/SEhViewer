@@ -43,7 +43,7 @@
 ### 🍪 Cookie 与登录
 - 支持表站（e-hentai.org）免登录浏览，里站（exhentai.org）需登录
 - 配套浏览器脚本（`browser.tsx` / userscript）：在 Safari 打开 E-Hentai 页面时，左下角悬浮按钮一键抓取 Cookie 写入本地文件，app 内"从浏览器导入"即可完成登录
-- Cookie 仅保存在本机（app 本地存储 / 浏览器文件），**不会上传到任何服务器**
+- Cookie 仅保存在本地，**不会上传到任何服务器**
 - 设置页可随时清除本地 Cookie、查看登录状态
 
 ### 🎨 界面与体验
@@ -55,8 +55,8 @@
 ## 安装
 
 1. 在 iPhone / iPad 上安装 [Scripting](https://scripting.fun)（App Store）
-2. 将本仓库 `scripts/SEhViewer/` 目录放入 Scripting 的脚本目录
-3. 打开 Scripting，运行 SEhViewer 项目即可
+2. [点此](https://www.scripting.fun/import_scripts/?urls=%5B%22https%3A%2F%2Fraw.githubusercontent.com%2FZerolost%2FSEhViewer%2Fmain%2Fdocs%2FSEhViewer.scripting%22%5D)或将将本仓库 Releases 导入 Scripting 即可
+3. 运行 SEhViewer 项目开始体验
 
 ### 使用提示
 
