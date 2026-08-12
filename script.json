@@ -1,0 +1,45 @@
+{
+  "name" : "SEhViewer",
+  "runInApp" : true,
+  "author" : {
+    "name" : "EHViewer",
+    "email" : null,
+    "homepage" : "https:\/\/github.com\/Gandum2077\/JSEhViewer"
+  },
+  "remoteResource" : null,
+  "entry" : "index.tsx",
+  "intentInputTypes" : [
+
+  ],
+  "color" : "rgba(174, 109, 216,1)",
+  "description" : "E-Hentai reader for Scripting app. Browse, search, and read E-Hentai galleries.",
+  "iconImage" : "",
+  "localizedNames" : {
+    "es" : "",
+    "it" : "",
+    "fr" : "",
+    "zh" : "SEhViewer",
+    "en" : "",
+    "ru" : "",
+    "ja" : "",
+    "de" : "",
+    "pt" : ""
+  },
+  "permissions" : null,
+  "icon" : "book.fill",
+  "version" : "1.2.9",
+  "localizedDescriptions" : {
+    "es" : "",
+    "fr" : "",
+    "ja" : "",
+    "de" : "",
+    "pt" : "",
+    "en" : "",
+    "zh" : "E-Hentai 阅读器，支持浏览、搜索和阅读 E-Hentai 图库。",
+    "ru" : "",
+    "it" : ""
+  },
+  "contributors" : [
+
+  ]
+}
