@@ -31,7 +31,7 @@ export class EHApiClient {
   }
 
   set exhentai(v: boolean) {
-    
+
     if (v && !this.isLoggedIn) {
       console.warn('[SEhViewer] 无法开启里站：未登录');
       return;
@@ -75,12 +75,12 @@ export class EHApiClient {
     return !!this.getMemberId() && !!this.getPassHash();
   }
 
-   
+
   get canAccessExhentai(): boolean {
     return this.isLoggedIn && this._exhentai;
   }
 
-   
+
   get hasIgneous(): boolean {
     return !!this._cookies.find((c) => c.name === "igneous" && c.value);
   }
@@ -123,7 +123,7 @@ export class EHApiClient {
       setTimeout(() => reject(new Error("请求超时，请检查网络")), 30000),
     );
 
-    
+
     let lastError: any = null;
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
@@ -139,7 +139,7 @@ export class EHApiClient {
 
         const text = await resp.text();
 
-        
+
         if (
           text.includes("Just a moment") ||
           text.includes("cf-browser-verification") ||
@@ -148,7 +148,7 @@ export class EHApiClient {
           throw new Error("站点反爬校验拦截，请稍后重试");
         }
 
-        
+
         if (resp.status === 403 && this._exhentai) {
           throw new Error(
             "里站访问被拒（403）：可能为 IP 受限、Cloudflare 拦截或会话已失效。请稍后重试；若持续失败，请在 Safari 打开 exhentai.org 确认可正常访问后，重新获取 Cookie"
@@ -166,14 +166,14 @@ export class EHApiClient {
     throw lastError || new Error("请求失败");
   }
 
-  
+
 
   async getFrontPage(page: number = 0): Promise<EHGalleryListItem[]> {
     const url = page === 0 ? "/" : `/?page=${page}`;
     return this.parseGalleryList(url, "front_page");
   }
 
-   
+
   async getHome(page: number = 0): Promise<EHGalleryListItem[]> {
     const url = page === 0 ? "/" : `/?page=${page}`;
     const items = await this.parseGalleryList(url, "home");
@@ -206,7 +206,7 @@ export class EHApiClient {
     return this.parseGalleryList(`/upload.php?page=${page}`, "upload");
   }
 
-  
+
 
   async search(options: SearchOptions): Promise<EHGalleryListItem[]> {
     const params: string[] = [];
@@ -218,9 +218,9 @@ export class EHApiClient {
       params.push(`f_search=${encodeURIComponent(options.fSearch)}`);
     }
 
-    
+
     if (options.categories && options.categories.length > 0) {
-      
+
       const allCats = [
         "Doujinshi", "Manga", "Artist CG", "Game CG",
         "Western", "Non-H", "Image Set", "Cosplay",
@@ -260,7 +260,7 @@ export class EHApiClient {
     return this.parseGalleryList(`/${queryString}`, "search");
   }
 
-  
+
 
   async getGalleryInfo(gid: number, token: string, page: number = 0): Promise<EHGalleryDetail> {
     const url = `/g/${gid}/${token}/?p=${page}`;
@@ -273,7 +273,7 @@ export class EHApiClient {
     return this.parseGalleryDetail(text, gid, token);
   }
 
-  
+
 
   async getMPVInfo(gid: number, token: string): Promise<EHMPVInfo | null> {
     try {
@@ -284,7 +284,7 @@ export class EHApiClient {
     }
   }
 
-  
+
 
   async getPageInfo(
     gid: number,
@@ -292,7 +292,7 @@ export class EHApiClient {
     page: number,
     reloadKey?: string,
   ): Promise<EHPageInfo> {
-    
+
     if (imgkey && !/^[a-f0-9]{32}$/i.test(imgkey)) {
       return this.fetchImageInfoByShowpage(gid, imgkey, page);
     }
@@ -315,10 +315,10 @@ export class EHApiClient {
 
       let imageUrl = data.i3 || data.i2 || data.i || data.src || "";
       if (imageUrl && !imageUrl.startsWith("http")) {
-        
+
         imageUrl = `https:${imageUrl}`;
       }
-      
+
       if (imageUrl) {
         imageUrl = imageUrl.replace(/\\\//g, "/");
       }
@@ -333,7 +333,7 @@ export class EHApiClient {
     }
   }
 
-   
+
   async fetchImageInfoByShowpage(
     gid: number,
     showkey: string,
@@ -358,7 +358,7 @@ export class EHApiClient {
     return new Uint8Array(arrayBuffer);
   }
 
-  
+
 
   private async parseGalleryList(
     url: string,
@@ -371,8 +371,8 @@ export class EHApiClient {
   private parseGalleryListHTML(html: string): EHGalleryListItem[] {
     const results: EHGalleryListItem[] = [];
 
-    
-    
+
+
     const itgRowRegex =
       /<tr><td class="gl1c glcat"[^>]*>([\s\S]*?)<\/td><td class="gl2c"[^>]*>([\s\S]*?)<\/td><td class="gl3c glname"[^>]*>([\s\S]*?)<\/td><td class="gl4c glhide"[^>]*>([\s\S]*?)<\/td><\/tr>/g;
     let itgMatch;
@@ -381,11 +381,11 @@ export class EHApiClient {
         const item = this.parseItgRow(itgMatch[1], itgMatch[2], itgMatch[3], itgMatch[4]);
         if (item) results.push(item);
       } catch {
-        
+
       }
     }
 
-    
+
     if (results.length === 0) {
       const rowRegex = /<tr class="(gtr0|gtr1)">([\s\S]*?)<\/tr>/g;
       const rows: string[] = [];
@@ -399,12 +399,12 @@ export class EHApiClient {
           const item = this.parseGalleryRow(rows[i], rows[i + 1]);
           if (item) results.push(item);
         } catch {
-          
+
         }
       }
     }
 
-    
+
     if (results.length === 0) {
       const gl1mRegex = /<div class="gl1m">([\s\S]*?)<\/div>\s*<\/div>\s*<\/div>/g;
       let m;
@@ -413,7 +413,7 @@ export class EHApiClient {
           const item = this.parseMinimalGalleryItem(m[1]);
           if (item) results.push(item);
         } catch {
-          
+
         }
       }
     }
@@ -421,25 +421,25 @@ export class EHApiClient {
     return results;
   }
 
-   
+
   private parseItgRow(
     catHtml: string,
     thumbHtml: string,
     nameHtml: string,
     infoHtml: string,
   ): EHGalleryListItem | null {
-    
+
     const linkMatch = nameHtml.match(/href="[^"]*\/g\/(\d+)\/([a-f0-9]+)\/"/);
     if (!linkMatch) return null;
 
     const gid = parseInt(linkMatch[1]);
     const token = linkMatch[2];
 
-    
+
     const titleMatch = nameHtml.match(/<div class="glink"[^>]*>([\s\S]*?)<\/div>/);
     const title = titleMatch ? this.decodeHTML(titleMatch[1].trim()) : "无标题";
 
-    
+
     let category: EHCategory = "Doujinshi";
     const catClassMatch = catHtml.match(/class="cn\s+(ct\w+)"/);
     if (catClassMatch) {
@@ -449,7 +449,7 @@ export class EHApiClient {
       if (catNameMatch) category = this.parseCategory(catNameMatch[1].trim());
     }
 
-    
+
     const dataSrcMatch = thumbHtml.match(/data-src="([^"]+)"/);
     const srcMatch = thumbHtml.match(/src="(https?:\/\/[^"]+)"/);
     const thumbnailUrl = this.normalizeThumbnailUrl(
@@ -460,15 +460,15 @@ export class EHApiClient {
           : ""
     );
 
-    
+
     const postedMatch = thumbHtml.match(/id="posted_\d+">([^<]+)</);
     const postedTime = postedMatch ? postedMatch[1].trim() : "";
 
-    
+
     const pagesMatch = (thumbHtml + infoHtml).match(/(\d+)\s*pages/);
     const fileCount = pagesMatch ? parseInt(pagesMatch[1]) : 0;
 
-    
+
     const tags: EHTagListItem[] = [];
     const tagRegex = /<div class="gt" title="([^:]+):([^"]+)"/g;
     let tagMatch;
@@ -479,15 +479,15 @@ export class EHApiClient {
       tags.push({ namespace: nsRaw as TagNamespace, name });
     }
 
-    
+
     const uploaderMatch = infoHtml.match(/<a href="[^"]*\/uploader\/[^"]*">([^<]+)<\/a>/);
     const uploader = uploaderMatch ? uploaderMatch[1].trim() : undefined;
 
-    
+
     const languageTag = tags.find((t) => t.namespace === "language");
     const language = languageTag ? languageTag.name : undefined;
 
-    
+
     const isAI =
       /class="[^"]*\bai\b[^"]*"/i.test(nameHtml) ||
       /ai[-_ ]?generated/i.test(nameHtml) ||
@@ -511,7 +511,7 @@ export class EHApiClient {
     };
   }
 
-   
+
   private parseCategoryClass(cls: string): EHCategory {
     const map: Record<string, EHCategory> = {
       ct1: "Misc",
@@ -529,28 +529,28 @@ export class EHApiClient {
   }
 
   private parseGalleryRow(row1: string, row2: string): EHGalleryListItem | null {
-    
+
     const linkMatch = row1.match(/<a href="\/g\/(\d+)\/([a-f0-9]+)\/"/);
     if (!linkMatch) return null;
 
     const gid = parseInt(linkMatch[1]);
     const token = linkMatch[2];
 
-    
+
     const titleMatch = row1.match(/<a href="\/g\/\d+\/[a-f0-9]+\/" title="([^"]*)"/);
     let title = titleMatch ? titleMatch[1].replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"') : "";
-    
+
     title = this.decodeHTML(title);
 
-    
+
     const thumbMatch = row1.match(/src="([^"]*(?:ehgt\.org|hath\.network|s\.exhentai\.org)[^"]*\.(?:jpg|png|jpeg|gif|webp))"/i);
     const thumbnailUrl = this.normalizeThumbnailUrl(thumbMatch ? thumbMatch[1] : "");
 
-    
+
     const catMatch = row1.match(/<div class="cs"[^>]*style="[^"]*">([^<]+)<\/div>/);
     const category = catMatch ? this.parseCategory(catMatch[1].trim()) : "Doujinshi";
 
-    
+
     const postedMatch = row2.match(/Posted:[\s\S]*?>([^<]+)</);
     const postedTime = postedMatch ? postedMatch[1].trim() : "";
 
@@ -565,7 +565,7 @@ export class EHApiClient {
     const pagesMatch = row2.match(/(\d+)\s*pages/);
     const fileCount = pagesMatch ? parseInt(pagesMatch[1]) : 0;
 
-    
+
     const tags: EHTagListItem[] = [];
     const tagRegex = /<div class="gt[^"]*" title="([^:]+):([^"]+)"/g;
     let tagMatch;
@@ -577,7 +577,7 @@ export class EHApiClient {
       }
     }
 
-    
+
     const uploaderMatch = row2.match(/<a href="\/uploader\/([^"]+)"/);
     const uploader = uploaderMatch ? uploaderMatch[1] : undefined;
 
@@ -630,14 +630,14 @@ export class EHApiClient {
   }
 
   private parseGalleryDetail(html: string, gid: number, token: string): EHGalleryDetail {
-    
+
     const titleMatch = html.match(/<h1 id="gn">([^<]+)<\/h1>/);
     const title1Match = html.match(/<h1 id="gj">([^<]+)<\/h1>/);
     let title = titleMatch ? this.decodeHTML(titleMatch[1].trim()) : "";
     const japaneseTitle = title1Match ? this.decodeHTML(title1Match[1].trim()) : "";
     const englishTitle = title;
 
-    
+
     let category: EHCategory = "Doujinshi";
     const catImgMatch = html.match(/<div id="gdc">.*?<img[^>]*alt="([^"]*)"/);
     if (catImgMatch) {
@@ -651,15 +651,15 @@ export class EHApiClient {
       }
     }
 
-    
+
     const uploaderMatch = html.match(/<div id="gdn">.*?<a[^>]*>([^<]+)<\/a>/);
     const uploader = uploaderMatch ? uploaderMatch[1].trim() : "未知";
 
-    
+
     const timeMatch = html.match(/<td class="gdt1">Posted:<\/td><td class="gdt2">([^<]+)<\/td>/);
     const postedTime = timeMatch ? timeMatch[1].trim() : "";
 
-    
+
     const ratingMatch =
       html.match(/<td id="rating_label"[^>]*>Average:\s*([\d.]+)<\/td>/) ||
       html.match(/<td id="rating_label">([\d.]+)<\/td>/) ||
@@ -668,33 +668,33 @@ export class EHApiClient {
     const ratingCountMatch = html.match(/<span id="rating_count">(\d+)<\/span>/);
     const ratingCount = ratingCountMatch ? parseInt(ratingCountMatch[1]) : 0;
 
-    
+
     const pagesMatch = html.match(/(\d+)\s*pages/);
     const fileCount = pagesMatch ? parseInt(pagesMatch[1]) : 0;
 
-    
+
     const sizeMatch = html.match(/<td class="gdt1">File Size:<\/td><td class="gdt2">([^<]+)<\/td>/);
     const fileSize = sizeMatch ? sizeMatch[1].trim() : "未知";
 
-    
+
     const langMatch = html.match(/<td class="gdt1">Language:<\/td><td class="gdt2">([^<]+)<\/td>/);
     const language = langMatch ? this.decodeHTML(langMatch[1].trim()) : undefined;
 
-    
+
     const tags = this.parseTagsFromDetail(html);
 
-    
+
     const coverMatch = html.match(/<div id="gd1"[^>]*>[\s\S]*?url\(['"]?([^'")\)]+)['"]?\)/);
     const coverUrl = coverMatch ? this.normalizeThumbnailUrl(coverMatch[1]) : undefined;
 
-    
+
     const favorited = html.includes("Remove from Favorites");
 
-    
+
     const torrentMatch = html.match(/Torrent Download\s*\((\d+)\)/) || html.match(/<p class="g2 gsp">(\d+)\s*torrent/);
     const torrentCount = torrentMatch ? parseInt(torrentMatch[1]) : 0;
 
-    
+
     let favoriteCount = 0;
     const favTextMatch = html.match(/<td class="gdt1">Favorited:<\/td><td class="gdt2"[^>]*>([^<]+)<\/td>/);
     if (favTextMatch) {
@@ -710,7 +710,7 @@ export class EHApiClient {
       if (favMatch) favoriteCount = parseInt(favMatch[1]) || 0;
     }
 
-    
+
     let parentGid: number | undefined;
     let parentToken: string | undefined;
     let parentTitle: string | undefined;
@@ -739,15 +739,15 @@ export class EHApiClient {
         cause === "expunged" || cause === "replaced" || cause === "private" ? cause : "unknown";
     }
 
-    
+
     const comments = this.parseComments(html);
-    
+
     const commentCount = comments.length;
 
-    
+
     const images = this.parseImages(html);
 
-    
+
     const pageCount = images.length > 0 ? Math.max(...images.map(i => i.page)) + 1 : undefined;
 
     return {
@@ -785,14 +785,14 @@ export class EHApiClient {
     };
   }
 
-   
+
   private parseComments(html: string): EHComment[] {
     const comments: EHComment[] = [];
     const container = html.match(/<div id="cdiv" class="gm">([\s\S]*?)(?:<div id="cdiv"|<div id="chd"|<div id="cnew"|$)/);
     if (!container) return comments;
     const section = container[1];
 
-    
+
     const parts = section.split(/<div class="c1">/);
     for (let i = 1; i < parts.length; i++) {
       const block = parts[i];
@@ -800,7 +800,7 @@ export class EHApiClient {
 
       const commenterMatch = block.match(/<div class="c3[^"]*">[\s\S]*?<a[^>]*>([^<]+)<\/a>/);
       const timeMatch = block.match(/Posted on\s*([\s\S]*?)\s*by:/);
-      
+
       const typeMatch = block.match(/<div class="c4 nosel"[^>]*>([\s\S]*?)<\/div>/);
       const bodyMatch = block.match(/<div class="c6"[^>]*id="comment_(\d+)"[^>]*>([\s\S]*?)<\/div>/);
       const votesMatch = block.match(/<div class="c7"[^>]*>([\s\S]*?)<\/div>/);
@@ -811,7 +811,7 @@ export class EHApiClient {
 
       let score = 0;
       let voteCount = 0;
-      
+
       const c5Match = block.match(/<div class="c5"[^>]*>[\s\S]*?<span>([+-]?\d+)<\/span>/);
       if (c5Match) {
         score = parseInt(c5Match[1]) || 0;
@@ -823,7 +823,7 @@ export class EHApiClient {
         const voteCountMatch = votesMatch[1].match(/(\d+)\s*votes?/);
         if (voteCountMatch) voteCount = parseInt(voteCountMatch[1]) || 0;
         else {
-          
+
           const helpfulMatch = votesMatch[1].match(/(\d+)\s*people found this helpful/);
           if (helpfulMatch) {
             voteCount = parseInt(helpfulMatch[1]) || 0;
@@ -848,7 +848,7 @@ export class EHApiClient {
 
   private parseTagsFromDetail(html: string): EHTagListItem[] {
     const tags: EHTagListItem[] = [];
-    
+
     const tagSection =
       html.match(/<div id="taglist">([\s\S]*?)<\/table>/) ||
       html.match(/<div id="taglist">([\s\S]*?)<\/div>/);
@@ -874,7 +874,7 @@ export class EHApiClient {
     };
 
     while ((match = tagRegex.exec(tagSection[1])) !== null) {
-      
+
       const nsRaw = match[1]
         .trim()
         .toLowerCase()
@@ -884,7 +884,7 @@ export class EHApiClient {
       if (!ns) continue;
 
       const tagsHTML = match[2];
-      
+
       const tagLinkRegex = /<a[^>]*id="ta_([^"]+)"[^>]*>([^<]+)<\/a>/g;
       let tagLinkMatch;
       while ((tagLinkMatch = tagLinkRegex.exec(tagsHTML)) !== null) {
@@ -900,21 +900,21 @@ export class EHApiClient {
   private parseImages(html: string): EHImageItem[] {
     const images: EHImageItem[] = [];
 
-    
-    
+
+
     const spriteRegex =
       /<a href="[^"]*\/s\/([a-f0-9]+)\/(\d+)-(\d+)"><div title="Page \d+: ([^"]*)"[^>]*style="[^"]*url\(([^)]+)\)\s*(-?\d+)px\s+0\s+no-repeat"[^>]*>/g;
     let spriteMatch;
     while ((spriteMatch = spriteRegex.exec(html)) !== null) {
       const showkey = spriteMatch[1];
-      const pageNum = parseInt(spriteMatch[3]); 
+      const pageNum = parseInt(spriteMatch[3]);
       const name = this.decodeHTML(spriteMatch[4].trim());
       const spriteUrl = this.normalizeThumbnailUrl(spriteMatch[5]);
-      const spriteX = parseInt(spriteMatch[6]); 
+      const spriteX = parseInt(spriteMatch[6]);
       images.push({
         page: pageNum - 1,
         name,
-        imgkey: showkey, 
+        imgkey: showkey,
         thumbnailUrl: spriteUrl,
         showkey,
         spriteX,
@@ -922,7 +922,7 @@ export class EHApiClient {
     }
     if (images.length > 0) return images;
 
-    
+
     const gdtmRegex = /<div class="gdtm"[^>]*>[\s\S]*?<div[^>]*style="[^"]*width:(\d+)[^"]*">[\s\S]*?<a href="([^"]*)">[\s\S]*?<img[^>]*src="([^"]*)"[^>]*alt="([^"]*)"/g;
     let match;
     let pageIndex = 0;
@@ -944,7 +944,7 @@ export class EHApiClient {
       pageIndex++;
     }
 
-    
+
     if (images.length === 0) {
       const gdtlRegex = /<div class="gdtl"[^>]*>[\s\S]*?<a href="([^"]*)">[\s\S]*?<img[^>]*src="([^"]*)"[^>]*alt="([^"]*)"/g;
       pageIndex = 0;
@@ -981,7 +981,7 @@ export class EHApiClient {
           if (item.k) imgkeys.push(item.k);
         });
       } catch {
-        
+
       }
     }
 
@@ -997,11 +997,11 @@ export class EHApiClient {
   }
 
   private extractImgkey(href: string, thumbnailUrl: string): string {
-    
+
     const thumbMatch = thumbnailUrl.match(/\/([a-f0-9]{32,})\//);
     if (thumbMatch) return thumbMatch[1];
 
-    
+
     const hrefMatch = href.match(/key=([a-f0-9]+)/);
     if (hrefMatch) return hrefMatch[1];
 
@@ -1042,13 +1042,13 @@ export class EHApiClient {
       .replace(/<[^>]*>/g, "");
   }
 
-   
+
   private normalizeThumbnailUrl(url: string): string {
     if (!url) return url;
     return url.replace(/^https?:\/\/s\.exhentai\.org\//, "https://ehgt.org/");
   }
 
-  
+
 
   async validateLogin(): Promise<boolean> {
     try {
@@ -1059,7 +1059,7 @@ export class EHApiClient {
     }
   }
 
-  
+
   getLoginUrl(): string {
     return `${this.baseUrl}/home.php`;
   }

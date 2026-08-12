@@ -84,20 +84,20 @@ export interface EHGalleryDetail {
   tags: EHTagListItem[];
   parentGid?: number;
   parentKey?: string;
-   
+
   parentTitle?: string;
-   
+
   visibleText?: string;
-   
+
   invisibleCause?: string;
   favorited: boolean;
   favcat?: number;
-   
+
   coverUrl?: string;
   favoriteCount?: number;
   torrentCount: number;
   commentCount: number;
-   
+
   comments: EHComment[];
   visible: boolean;
   expunged?: boolean;
@@ -106,14 +106,14 @@ export interface EHGalleryDetail {
   isAI?: boolean;
 }
 
- 
+
 export interface EHComment {
-   
+
   id: string;
   commenter: string;
-   
+
   postedTime: string;
-   
+
   type?: string;
   isUploader: boolean;
   body: string;
@@ -122,14 +122,14 @@ export interface EHComment {
 }
 
 export interface EHImageItem {
-  page: number; 
+  page: number;
   name: string;
   imgkey: string;
   thumbnailUrl: string;
   width?: number;
   height?: number;
   showkey?: string;
-   
+
   spriteX?: number;
 }
 
@@ -181,9 +181,9 @@ export interface Config {
   exhentai: boolean;
   githubToken: string;
   pageDirection: "left_to_right" | "right_to_left" | "vertical";
-   
+
   readerMode: ReaderMode;
-   
+
   leftEdgeAction: EdgeAction;
   rightEdgeAction: EdgeAction;
   autoClearCache: boolean;

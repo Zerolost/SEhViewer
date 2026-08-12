@@ -79,10 +79,10 @@ const GLASS_TOKENS: {
   },
 };
 
- 
+
 let currentAppearance: AppearanceMode = "system";
 
- 
+
 const appearanceSubscribers = new Set<(v: number) => void>();
 
 function notifyAppearanceChanged(): void {
@@ -104,7 +104,7 @@ function pageBackgroundFill(): DynamicShapeStyle {
   return { light: "#f2f2f7", dark: "#161618" };
 }
 
- 
+
 function labelColor(): Color {
   if (currentAppearance === "light") return "#1a1a1c" as Color;
   if (currentAppearance === "dark") return "#ffffff" as Color;
@@ -124,7 +124,7 @@ function tertiaryLabelColor(): Color {
 }
 
 function PageBackground() {
-  
+
   const appearanceTick = useObservable(0);
   useEffect(() => {
     const listener = (v: number) => appearanceTick.setValue(v);
@@ -144,7 +144,7 @@ function PageBackground() {
   );
 }
 
- 
+
 function glassShape(material: GlassMaterial) {
   if (material === "navigation") return "capsule" as const;
   const radius =
@@ -160,7 +160,7 @@ function glassShape(material: GlassMaterial) {
   };
 }
 
- 
+
 function glassWithAppearance(glass: UIGlass): UIGlass {
   return glass;
 }
@@ -173,7 +173,7 @@ function glassEffectFor(material: GlassMaterial, shape?: any, interactive?: bool
   };
 }
 
- 
+
 function glassListRowStyleProps() {
   return {
     frame: { maxWidth: "infinity" as const, alignment: "leading" as const },
@@ -188,7 +188,7 @@ function glassListRowStyleProps() {
   };
 }
 
- 
+
 function GlassSurface({ material = "content", children }: { material?: GlassMaterial; children?: any }) {
   return (
     <ZStack
@@ -203,7 +203,7 @@ function GlassSurface({ material = "content", children }: { material?: GlassMate
   );
 }
 
- 
+
 function GlassListRow({ children }: { children?: any }) {
   return (
     <ZStack {...glassListRowStyleProps()}>
@@ -212,7 +212,7 @@ function GlassListRow({ children }: { children?: any }) {
   );
 }
 
- 
+
 function ShelfHeader({ title, caption }: { title: string; caption?: string }) {
   return (
     <HStack
@@ -242,7 +242,7 @@ function ShelfHeader({ title, caption }: { title: string; caption?: string }) {
   );
 }
 
- 
+
 function GlassIconButton({
   title,
   systemName,
@@ -267,7 +267,7 @@ function GlassIconButton({
   );
 }
 
- 
+
 function GlassActionButton({
   title,
   systemImage,
@@ -309,7 +309,7 @@ function GlassActionButton({
   );
 }
 
- 
+
 function GlassInputRow({ children }: { children?: any }) {
   return (
     <HStack
@@ -323,7 +323,7 @@ function GlassInputRow({ children }: { children?: any }) {
   );
 }
 
- 
+
 function roundedClip(radius: number) {
   return {
     type: "concentricRect" as const,
@@ -332,14 +332,14 @@ function roundedClip(radius: number) {
   };
 }
 
- 
+
 function roundedImage(radius: number = 10) {
   return { clipShape: roundedClip(radius) };
 }
 
 
 
- 
+
 function parseCookieString(cookieStr: string): ParsedCookie[] {
   return cookieStr
     .split(";")
@@ -350,7 +350,7 @@ function parseCookieString(cookieStr: string): ParsedCookie[] {
     .filter((c: any) => c.name && c.value);
 }
 
- 
+
 function GlassTextField({
   value,
   onChanged,
@@ -387,7 +387,7 @@ function GlassTextField({
 
 
 function LoginView({ onLogin }: { onLogin: () => void }) {
-  
+
   const appearanceTick = useObservable(0);
   useEffect(() => {
     const listener = (v: number) => appearanceTick.setValue(v);
@@ -425,7 +425,7 @@ function LoginView({ onLogin }: { onLogin: () => void }) {
       api.updateCookie(cookies);
       api.exhentai = exhentaiToggle.value;
 
-      
+
 
       const valid = await api.validateLogin();
       if (!valid) {
@@ -497,7 +497,7 @@ function LoginView({ onLogin }: { onLogin: () => void }) {
                       if (FileManager.existsSync(p)) {
                         text = FileManager.readAsStringSync(p);
                       } else {
-                        
+
                         const gm = cookieFromGMStorage();
                         if (gm) text = gm;
                       }
@@ -559,12 +559,12 @@ function GalleryRow({
   onTagSearch?: (query: string) => void;
 }) {
   const title = extractTitle(item);
-  
+
   const thumbPath = useObservable<string | null>(null);
   useEffect(() => {
     if (!item.thumbnailUrl) return;
     let alive = true;
-    
+
     const reload = () => {
       if (!alive) return;
       thumbPath.setValue(null);
@@ -658,7 +658,7 @@ function GalleryDetailView({
   onLanguageDetected?: (gid: number, language: string) => void;
   onTagSearch?: (query: string) => void;
 }) {
-  
+
   const appearanceTick = useObservable(0);
   useEffect(() => {
     const listener = (v: number) => appearanceTick.setValue(v);
@@ -675,15 +675,15 @@ function GalleryDetailView({
   const moreError = useObservable("");
   const currentPage = useObservable(0);
   const images = useObservable<EHImageItem[]>([]);
-  
+
   const zipDownloading = useObservable(false);
   const zipProgress = useObservable("");
   const savingPage = useObservable<number | null>(null);
 
   useEffect(() => {
     loadGallery(0);
-    
-    
+
+
   }, [gid, token]);
 
   const loadGallery = async (page: number) => {
@@ -695,12 +695,12 @@ function GalleryDetailView({
       gallery.setValue(detail);
       if (page === 0) {
         images.setValue(detail.images);
-        
+
         if (detail.language && onLanguageDetected) {
           onLanguageDetected(gid, detail.language);
         }
       } else {
-        
+
         images.setValue([...images.value, ...detail.images]);
       }
       currentPage.setValue(page);
@@ -708,7 +708,7 @@ function GalleryDetailView({
       if (page === 0) {
         errorMsg.setValue(e.message || "加载失败");
       } else {
-        
+
         moreError.setValue(e.message || "加载更多失败");
       }
     } finally {
@@ -716,7 +716,7 @@ function GalleryDetailView({
     }
   };
 
-   
+
   const openReader = async (img: EHImageItem) => {
     await Navigation.present(
       <ReaderView
@@ -729,7 +729,7 @@ function GalleryDetailView({
     );
   };
 
-   
+
   const startZipDownload = async () => {
     if (zipDownloading.value) return;
     const g = gallery.value;
@@ -747,11 +747,11 @@ function GalleryDetailView({
         },
       );
       zipProgress.setValue("打包完成");
-      
+
       try {
         await DocumentInteraction.optionsMenu(zipPath);
       } catch {
-        
+
         await alert({
           title: "已打包",
           message: `zip 已保存到：\n${zipPath}\n\n可在「文件」App 的 Scripting 文档目录中找到。`,
@@ -772,7 +772,7 @@ function GalleryDetailView({
     }
   };
 
-   
+
   const startSingleDownload = async (img: EHImageItem) => {
     if (savingPage.value !== null) return;
     savingPage.setValue(img.page);
@@ -1147,7 +1147,7 @@ function getCachedImagePath(url: string): string | null {
   }
 }
 
- 
+
 const cacheImageInFlight = new Map<string, Promise<string | null>>();
 
 
@@ -1201,7 +1201,7 @@ function getImageCacheSize(): number {
   }
 }
 
- 
+
 function clearImageCache(): { removed: number; freed: number } {
   let removed = 0;
   let freed = 0;
@@ -1221,15 +1221,15 @@ function clearImageCache(): { removed: number; freed: number } {
         FileManager.removeSync(full);
         removed++;
       } catch {
-        
+
       }
     }
-    
+
     try {
       FileManager.removeSync(IMAGE_CACHE_DIR);
     } catch {}
     ensureImageCacheDir();
-    
+
     notifyImageCacheInvalidated();
   } catch {}
   return { removed, freed };
@@ -1257,7 +1257,7 @@ function saveSearchHistory(list: string[]): void {
   } catch {}
 }
 
- 
+
 function addSearchHistory(q: string): string[] {
   const kw = q.trim();
   const list = loadSearchHistory().filter((x) => x !== kw);
@@ -1267,14 +1267,14 @@ function addSearchHistory(q: string): string[] {
   return trimmed;
 }
 
- 
+
 function removeSearchHistory(q: string): string[] {
   const list = loadSearchHistory().filter((x) => x !== q);
   saveSearchHistory(list);
   return list;
 }
 
- 
+
 function clearSearchHistory(): string[] {
   saveSearchHistory([]);
   return [];
@@ -1292,13 +1292,13 @@ function ensureDownloadDir(): void {
   } catch {}
 }
 
- 
+
 function imageExtFromUrl(url: string): string {
   const m = url.match(/\.(jpg|jpeg|png|gif|webp|avif)(\?|$)/i);
   return m ? m[1].toLowerCase() : "jpg";
 }
 
- 
+
 let zipCancelRequested = false;
 function cancelZipDownload(): void {
   zipCancelRequested = true;
@@ -1310,7 +1310,7 @@ class ZipCancelledError extends Error {
   }
 }
 
- 
+
 async function downloadGalleryZip(
   gid: number,
   token: string,
@@ -1321,7 +1321,7 @@ async function downloadGalleryZip(
   ensureDownloadDir();
   zipCancelRequested = false;
 
-  
+
   const all: EHImageItem[] = [...knownImages];
   let page = Math.floor(all.length / PER_PAGE);
   let guard = 0;
@@ -1336,7 +1336,7 @@ async function downloadGalleryZip(
   }
   if (all.length === 0) throw new Error("没有可下载的图片");
 
-  
+
   const tmpDir = `${DOWNLOAD_DIR}/${gid}`;
   let failed = 0;
   try {
@@ -1360,25 +1360,25 @@ async function downloadGalleryZip(
       onProgress?.(i + 1, all.length);
     }
 
-    
+
     const zipPath = `${DOWNLOAD_DIR}/${gid}.zip`;
     if (FileManager.existsSync(zipPath)) FileManager.removeSync(zipPath);
     await FileManager.zip(tmpDir, zipPath, false);
 
     if (failed > 0) {
-      
+
       console.log(`[download] ${failed} 页下载失败`);
     }
     return zipPath;
   } finally {
-    
+
     try {
       if (FileManager.existsSync(tmpDir)) FileManager.removeSync(tmpDir);
     } catch {}
   }
 }
 
- 
+
 async function saveSingleImageToPhotos(gid: number, img: EHImageItem): Promise<boolean> {
   const info = await api.getPageInfo(gid, img.imgkey, img.page);
   if (!info.imageUrl) throw new Error("无图片地址");
@@ -1402,7 +1402,7 @@ async function saveSingleImageToPhotos(gid: number, img: EHImageItem): Promise<b
 
 
 
- 
+
 const spriteImageCache = new Map<string, Promise<UIImage | null>>();
 
 function getSpriteImage(url: string): Promise<UIImage | null> {
@@ -1420,7 +1420,7 @@ function getSpriteImage(url: string): Promise<UIImage | null> {
   return p;
 }
 
- 
+
 function SpriteThumb({
   spriteUrl,
   spriteX,
@@ -1477,7 +1477,7 @@ function SpriteThumb({
     );
   }
 
-  
+
   return (
     <VStack
       frame={{ width: displayWidth, height: displayHeight }}
@@ -1494,7 +1494,7 @@ function SpriteThumb({
 
 
 
- 
+
 function cookieImportPath(): string {
   const candidates: string[] = [];
   try {
@@ -1520,7 +1520,7 @@ function cookieImportPath(): string {
   return candidates[0] || (FileManager.documentsDirectory || FileManager.safariBrowserDirectory) + "/ehviewer_cookie.txt";
 }
 
- 
+
 function cookieFromGMStorage(): string | null {
   try {
     const storageDir = FileManager.safariBrowserStorageDirectory;
@@ -1539,9 +1539,9 @@ function cookieFromGMStorage(): string | null {
   return null;
 }
 
- 
+
 const pageImageUrlCache = new Map<string, string>();
- 
+
 function cachePageUrl(key: string, url: string) {
   if (pageImageUrlCache.size > 800) {
     let i = 0;
@@ -1553,7 +1553,7 @@ function cachePageUrl(key: string, url: string) {
   pageImageUrlCache.set(key, url);
 }
 
- 
+
 const PER_PAGE = 20;
 
 
@@ -1572,7 +1572,7 @@ function ReaderView({
   startPage: number;
   fileCount: number;
 }) {
-  
+
   const appearanceTick = useObservable(0);
   useEffect(() => {
     const listener = (v: number) => appearanceTick.setValue(v);
@@ -1591,26 +1591,26 @@ function ReaderView({
   const pageInfo = useObservable("");
   const loading = useObservable(false);
   const requestSeq = useObservable(0);
-  
+
   const savingCurrent = useObservable(false);
-  
+
   const longPressSaved = useRef(false);
 
-  
+
   const readerConfig = loadConfig();
-  
+
   const pageDirection = readerConfig.pageDirection === "left_to_right" ? "right_to_left" : readerConfig.pageDirection;
   const readerMode = readerConfig.readerMode;
   const leftEdgeAction = readerConfig.leftEdgeAction;
   const rightEdgeAction = readerConfig.rightEdgeAction;
 
-   
+
   const isAnimated = useObservable(false);
   const checkAnimated = (url: string) => {
     if (/\.gif(\?|$)/i.test(url)) isAnimated.setValue(true);
   };
 
-   
+
   const ensureMore = async () => {
     if (moreLoading.value) return;
     if (allImages.value.length >= fileCount) return;
@@ -1624,7 +1624,7 @@ function ReaderView({
         allImages.setValue([...allImages.value, ...added]);
       }
     } catch {
-      
+
     } finally {
       moreLoading.setValue(false);
     }
@@ -1635,7 +1635,7 @@ function ReaderView({
   };
 
   useEffect(() => {
-    
+
     currentIdx.setValue(startPage);
     loadPage(startPage);
     maybeLoadMore(startPage);
@@ -1650,7 +1650,7 @@ function ReaderView({
       const info = await api.getPageInfo(gid, img.imgkey, idx);
       if (!info.imageUrl) return;
       pageImageUrlCache.set(`${gid}-${idx}`, info.imageUrl);
-      
+
       if (!getCachedImagePath(info.imageUrl)) {
         cacheImage(info.imageUrl);
       }
@@ -1668,7 +1668,7 @@ function ReaderView({
     pageInfo.setValue(`第 ${idx + 1} / ${allImages.value.length} 页 · 加载中...`);
     try {
       const info = await api.getPageInfo(gid, img.imgkey, idx);
-      if (requestSeq.value !== seq) return; 
+      if (requestSeq.value !== seq) return;
       const url = info.imageUrl;
       if (!url) {
         pageInfo.setValue(`第 ${idx + 1} 页加载失败`);
@@ -1681,14 +1681,14 @@ function ReaderView({
         displayPath.setValue(cached);
         pageInfo.setValue(`第 ${idx + 1} / ${allImages.value.length} 页`);
       } else {
-        
+
         displayPath.setValue(url);
         pageInfo.setValue(`第 ${idx + 1} / ${allImages.value.length} 页`);
         cacheImage(url).then((p) => {
           if (requestSeq.value === seq && p) displayPath.setValue(p);
         });
       }
-      
+
       preload(idx + 1);
       preload(idx - 1);
     } catch (e: any) {
@@ -1709,7 +1709,7 @@ function ReaderView({
 
   const isLocal = displayPath.value.startsWith("/");
 
-   
+
   const stitched = readerMode === "swipe" && !isAnimated.value;
   const stitchedAxis = pageDirection === "vertical" ? "vertical" : "horizontal";
   const stitchedMirror = pageDirection === "right_to_left";
@@ -1717,7 +1717,7 @@ function ReaderView({
   const nextPage = () => goTo(currentIdx.value + 1);
   const prevPage = () => goTo(currentIdx.value - 1);
 
-   
+
   const saveCurrentPage = async () => {
     if (savingCurrent.value) return;
     const idx = stitched ? allImages.value.length - 1 : currentIdx.value;
@@ -1747,13 +1747,13 @@ function ReaderView({
     }
   };
 
-  
+
   const leftAction = leftEdgeAction === "next" ? nextPage : leftEdgeAction === "prev" ? prevPage : null;
   const rightAction = rightEdgeAction === "next" ? nextPage : rightEdgeAction === "prev" ? prevPage : null;
 
-   
+
   const handleTapLike = (d: any) => {
-    
+
     if (longPressSaved.current) {
       longPressSaved.current = false;
       return;
@@ -1768,7 +1768,7 @@ function ReaderView({
     }
   };
 
-  
+
   const handleDragEnded = (d: any) => {
     const dx = d.translation.width;
     const dy = d.translation.height;
@@ -1779,7 +1779,7 @@ function ReaderView({
         else prevPage();
       }
     } else {
-      
+
       if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > threshold) {
         if (dx > 0) nextPage();
         else prevPage();
@@ -2019,7 +2019,7 @@ function ReaderView({
   );
 }
 
- 
+
 function StitchInitialScroll({
   proxy,
   shouldScroll,
@@ -2044,13 +2044,13 @@ function StitchInitialScroll({
       } catch (e) {}
     }, 350);
     return () => clearTimeout(timer);
-    
-    
+
+
   }, [shouldScroll, targetPage]);
   return children;
 }
 
- 
+
 function StitchedPage({
   gid,
   img,
@@ -2070,7 +2070,7 @@ function StitchedPage({
 }) {
   const path = useObservable("");
   const state = useObservable<"loading" | "ready" | "error">("loading");
-  
+
   const saving = useRef(false);
   const handleSave = async () => {
     if (saving.current) return;
@@ -2100,7 +2100,7 @@ function StitchedPage({
       try {
         let url: string | null = cachedUrl ?? null;
         if (!url) {
-          
+
           await new Promise<void>((r) => setTimeout(() => r(), Math.min(idx * 80, 800)));
           if (!alive) return;
           const info = await api.getPageInfo(gid, img.imgkey, idx);
@@ -2201,7 +2201,7 @@ const GALLERY_CATEGORIES: { value: string; label: string }[] = [
 ];
 
 function BrowseView({ refreshSignal = 0, onTagSearch }: { refreshSignal?: boolean | number; onTagSearch?: (query: string) => void }) {
-  
+
   const appearanceTick = useObservable(0);
   useEffect(() => {
     const listener = (v: number) => appearanceTick.setValue(v);
@@ -2222,13 +2222,13 @@ function BrowseView({ refreshSignal = 0, onTagSearch }: { refreshSignal?: boolea
     loadGalleries(0, listType.value);
   }, []);
 
-  
+
   useEffect(() => {
     loadGalleries(0, listType.value);
-    
+
   }, [refreshSignal]);
 
-  
+
   const handleLanguageDetected = (gid: number, language: string) => {
     galleries.setValue(
       galleries.value.map((it) =>
@@ -2248,7 +2248,7 @@ function BrowseView({ refreshSignal = 0, onTagSearch }: { refreshSignal?: boolea
       let items: EHGalleryListItem[];
       switch (type) {
         case "home":
-          
+
           items = api.isLoggedIn ? await api.getHome(page) : await api.getPopular(page);
           break;
         case "watched":
@@ -2452,7 +2452,7 @@ function SearchView({
 }: {
   onTagSearch?: (query: string) => void;
 }) {
-  
+
   const appearanceTick = useObservable(0);
   useEffect(() => {
     const listener = (v: number) => appearanceTick.setValue(v);
@@ -2467,10 +2467,10 @@ function SearchView({
   const loading = useObservable(false);
   const errorMsg = useObservable("");
   const currentPage = useObservable(0);
-  
+
   const history = useObservable<string[]>(loadSearchHistory());
 
-  
+
   const resetSearch = () => {
     Keyboard.hide();
     keyword.setValue("");
@@ -2489,7 +2489,7 @@ function SearchView({
       const items = await api.search({ keyword: q, page });
       if (page === 0) {
         results.setValue(items);
-        
+
         history.setValue(addSearchHistory(q));
       } else {
         results.setValue([...results.value, ...items]);
@@ -2502,7 +2502,7 @@ function SearchView({
     }
   };
 
-  
+
   const handleLanguageDetected = (gid: number, language: string) => {
     results.setValue(
       results.value.map((it) =>
@@ -2575,7 +2575,7 @@ function SearchView({
           </Text>
         </HStack>
         {!loading.value && results.value.length === 0 ? (
-          
+
           <HStack padding={{ horizontal: 16, vertical: 6 }} frame={{ maxWidth: "infinity" }} alignment="center">
             <Text font="caption" foregroundStyle={tertiaryLabelColor()}>
               输入关键词搜索
@@ -2696,7 +2696,7 @@ function SearchView({
 
 
 function TagSearchPage({ query }: { query: string }) {
-  
+
   const appearanceTick = useObservable(0);
   useEffect(() => {
     const listener = (v: number) => appearanceTick.setValue(v);
@@ -2714,7 +2714,7 @@ function TagSearchPage({ query }: { query: string }) {
   const errorMsg = useObservable("");
   const currentPage = useObservable(0);
 
-  
+
   const doSearch = async (page: number = 0, kw?: string) => {
     const q = kw ?? keyword.value;
     if (!q.trim()) return;
@@ -2735,13 +2735,13 @@ function TagSearchPage({ query }: { query: string }) {
     }
   };
 
-  
+
   useEffect(() => {
     doSearch(0, query);
-    
+
   }, [query]);
 
-  
+
   const handleLanguageDetected = (gid: number, language: string) => {
     results.setValue(
       results.value.map((it) =>
@@ -2750,7 +2750,7 @@ function TagSearchPage({ query }: { query: string }) {
     );
   };
 
-  
+
   const handleTagSearch = (q: string) => {
     Navigation.present(
       <NavigationStack>
@@ -2878,7 +2878,7 @@ function SettingsView({
   onExhentaiChange: () => void;
   onAppearanceChange: () => void;
 }) {
-  
+
   const appearanceTick = useObservable(0);
   useEffect(() => {
     const listener = (v: number) => appearanceTick.setValue(v);
@@ -3066,7 +3066,7 @@ function SettingsView({
                           if (FileManager.existsSync(p)) {
                             text = FileManager.readAsStringSync(p);
                           } else {
-                            
+
                             const gm = cookieFromGMStorage();
                             if (gm) text = gm;
                           }
@@ -3115,7 +3115,7 @@ function SettingsView({
                         api.updateCookie([]);
                         api.exhentai = false;
                         saveConfig({ cookie: "", exhentai: false });
-                        
+
                         cookieDraft.setValue("");
                         cookieError.setValue("");
                         onLogin();
@@ -3389,9 +3389,9 @@ function MainApp() {
   const isLoggedIn = useObservable(api.isLoggedIn);
   const exhentaiEnabled = useObservable(api.exhentai);
   const appearanceTick = useObservable(0);
-  
-  
-  
+
+
+
   const handleTagSearch = (query: string) => {
     Navigation.present(
       <NavigationStack>
@@ -3399,11 +3399,11 @@ function MainApp() {
       </NavigationStack>
     );
   };
-  
-  
+
+
   const appearanceMode = useObservable<AppearanceMode>(currentAppearance);
 
-  
+
   useEffect(() => {
     const config = loadConfig();
     currentAppearance = config.appearance || "system";
@@ -3459,7 +3459,7 @@ function MainApp() {
 
 
 async function run() {
-  
+
   currentAppearance = loadConfig().appearance || "system";
   await Navigation.present(
     <NavigationStack>

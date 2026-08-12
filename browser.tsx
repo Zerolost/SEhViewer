@@ -34,7 +34,7 @@ declare const window: any;
     return m ? decodeURIComponent(m[1]) : "";
   }
 
-  
+
   function isLoggedIn(): boolean {
     return !!getCookie("ipb_member_id") && !!getCookie("ipb_pass_hash");
   }
@@ -45,7 +45,7 @@ declare const window: any;
     return state + ex;
   }
 
-   
+
   function candidatePaths(): string[] {
     var paths: string[] = [];
     try {
@@ -96,7 +96,7 @@ declare const window: any;
       if (ok) writtenTo.push(paths[i]);
       else failed.push(paths[i]);
     }
-    
+
     var gmOk = false;
     try {
       await GM.setValue("ehviewer_cookie", cookieStr);
@@ -105,7 +105,7 @@ declare const window: any;
     return { ok: writtenTo.length > 0 || gmOk, writtenTo: writtenTo, failed: failed, gmOk: gmOk };
   }
 
-   
+
   function clearPageCookies(): string[] {
     var names = ["ipb_member_id", "ipb_pass_hash", "ipb_member_hash", "igneous", "yay"];
     var domains = ["", ".e-hentai.org", ".exhentai.org", ".s.exhentai.org"];
@@ -116,7 +116,7 @@ declare const window: any;
         return c.indexOf(name + "=") === 0;
       });
       for (var d = 0; d < domains.length; d++) {
-        
+
         document.cookie = name + "=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=" + domains[d];
         document.cookie = name + "=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
         document.cookie = name + "=; expires=Thu, 01 Jan 1970 00:00:00 GMT";
@@ -126,7 +126,7 @@ declare const window: any;
     return removed;
   }
 
-   
+
   async function readCookieFile(): Promise<string> {
     var paths = candidatePaths();
     for (var i = 0; i < paths.length; i++) {
@@ -137,7 +137,7 @@ declare const window: any;
         }
       } catch (e) {}
     }
-    
+
     try {
       var gm = await GM.getValue("ehviewer_cookie");
       if (gm && gm.trim()) return gm.trim();
@@ -145,7 +145,7 @@ declare const window: any;
     return "";
   }
 
-   
+
   async function clearCookie(): Promise<{
     pageRemoved: string[];
     removed: string[];
@@ -163,7 +163,7 @@ declare const window: any;
       try {
         exists = Scripting.FileManager.existsSync(paths[i]);
       } catch (e) {
-        
+
         skipped.push(paths[i]);
         continue;
       }
@@ -172,7 +172,7 @@ declare const window: any;
         Scripting.FileManager.removeSync(paths[i]);
         removed.push(paths[i]);
       } catch (e) {
-        
+
         failed.push(paths[i]);
       }
     }
@@ -184,7 +184,7 @@ declare const window: any;
     return { pageRemoved: pageRemoved, removed: removed, failed: failed, skipped: skipped, gmOk: gmOk };
   }
 
-   
+
   async function cookieStatusText(): Promise<string> {
     var member = getCookie("ipb_member_id");
     var pass = getCookie("ipb_pass_hash");
@@ -200,7 +200,7 @@ declare const window: any;
     return lines.join("\n");
   }
 
-  
+
   var BTN_ID = "__sehviewer_cookie_btn";
   if (!document.getElementById(BTN_ID)) {
     var btn = document.createElement("div");
@@ -252,7 +252,7 @@ declare const window: any;
     document.body.appendChild(btn);
   }
 
-  
+
   GM.registerMenuCommand("🍪 获取 EH Cookie 并写入", async function () {
     if (!isLoggedIn()) {
       alert("当前未登录（" + loginStateText() + "），无法获取 Cookie。请先登录 e-hentai.org；里站请打开 exhentai.org。");
@@ -263,12 +263,12 @@ declare const window: any;
     else alert("❌ 写入失败（候选路径均无权限）");
   });
 
-  
+
   GM.registerMenuCommand("🔍 查看当前 Cookie", async function () {
     alert(await cookieStatusText());
   });
 
-  
+
   GM.registerMenuCommand("🗑️ 清除本地 Cookie", async function () {
     var res = await clearCookie();
     var pageNote = res.pageRemoved.length > 0 ? "页面 Cookie " + res.pageRemoved.join("/") + " 已清除" : "页面无可见 Cookie";
