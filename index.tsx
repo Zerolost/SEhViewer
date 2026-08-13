@@ -3346,7 +3346,7 @@ function SettingsView({
         { }
         <Section>
           <VStack alignment="leading" spacing={10} frame={{ maxWidth: "infinity", alignment: "leading" }} listRowBackground={<></>} listRowSeparator="hidden">
-            <ShelfHeader title="关于" caption="SEhViewer v1.2.9" />
+            <ShelfHeader title="关于" caption="SEhViewer v1.3.1" />
             <GlassSurface>
               <VStack alignment="leading" spacing={4} padding={14} frame={{ maxWidth: "infinity", alignment: "leading" }}>
                 <Text font="body" foregroundStyle={labelColor()}>SEhViewer</Text>
