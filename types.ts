@@ -51,6 +51,9 @@ export interface EHGalleryListItem {
   englishTitle?: string;
   japaneseTitle?: string;
   thumbnailUrl: string;
+  /** E-Hentai 列表缩略图的实际显示尺寸，不是详情页完整图尺寸。 */
+  thumbnailWidth?: number;
+  thumbnailHeight?: number;
   category: EHCategory;
   postedTime: string;
   fileCount: number;
@@ -84,20 +87,20 @@ export interface EHGalleryDetail {
   tags: EHTagListItem[];
   parentGid?: number;
   parentKey?: string;
-
+   
   parentTitle?: string;
-
+   
   visibleText?: string;
-
+   
   invisibleCause?: string;
   favorited: boolean;
   favcat?: number;
-
+   
   coverUrl?: string;
   favoriteCount?: number;
   torrentCount: number;
   commentCount: number;
-
+   
   comments: EHComment[];
   visible: boolean;
   expunged?: boolean;
@@ -106,14 +109,14 @@ export interface EHGalleryDetail {
   isAI?: boolean;
 }
 
-
+ 
 export interface EHComment {
-
+   
   id: string;
   commenter: string;
-
+   
   postedTime: string;
-
+   
   type?: string;
   isUploader: boolean;
   body: string;
@@ -122,14 +125,14 @@ export interface EHComment {
 }
 
 export interface EHImageItem {
-  page: number;
+  page: number; 
   name: string;
   imgkey: string;
   thumbnailUrl: string;
   width?: number;
   height?: number;
   showkey?: string;
-
+   
   spriteX?: number;
 }
 
@@ -151,11 +154,20 @@ export interface GidToken {
   token: string;
 }
 
+/** 浏览页单批结果及站点原生向后游标；热门等不可翻页数据源不会返回 nextCursor。 */
+export interface EHGalleryBrowsePage {
+  items: EHGalleryListItem[];
+  nextCursor?: number;
+}
+
 export interface SearchOptions {
   keyword?: string;
   categories?: EHCategory[];
   excludedCategories?: EHCategory[];
+  /** 旧式数字页码，仅供主页分类列表兼容使用。搜索结果分页请使用 cursor。 */
   page?: number;
+  /** E-Hentai 搜索列表使用图库 gid 作为向后翻页游标。 */
+  cursor?: number;
   minRating?: number;
   minPages?: number;
   maxPages?: number;
@@ -171,6 +183,14 @@ export interface SearchOptions {
   fSearch?: string;
 }
 
+/** 单次搜索响应的轻量分页信息；items 固定最多 20 条。 */
+export interface EHGallerySearchPage {
+  items: EHGalleryListItem[];
+  totalCount: number;
+  totalIsApproximate: boolean;
+  nextCursor?: number;
+}
+
 export type AppearanceMode = "system" | "light" | "dark";
 
 export type ReaderMode = "swipe" | "tap";
@@ -181,9 +201,9 @@ export interface Config {
   exhentai: boolean;
   githubToken: string;
   pageDirection: "left_to_right" | "right_to_left" | "vertical";
-
+   
   readerMode: ReaderMode;
-
+   
   leftEdgeAction: EdgeAction;
   rightEdgeAction: EdgeAction;
   autoClearCache: boolean;
