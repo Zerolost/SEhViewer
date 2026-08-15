@@ -12,7 +12,7 @@
 | --- | --- | --- |
 | ![首页](docs/screenshots/home.jpeg) | ![搜索](docs/screenshots/search.jpeg) | ![详情页](docs/screenshots/detail.jpeg) |
 
-| 阅读器（单张） | 阅读器（拼接滚动） | 设置 |
+| 阅读器（单张） | 阅读器（滚动） | 设置 |
 | --- | --- | --- |
 | ![阅读器](docs/screenshots/reader.jpeg) | ![滚动阅读](docs/screenshots/stitched.jpeg) | ![设置](docs/screenshots/settings.jpeg) |
 
