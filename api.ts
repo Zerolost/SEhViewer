@@ -1,4 +1,3 @@
-
 import {
   ParsedCookie,
   EHGalleryListItem,
@@ -23,6 +22,7 @@ export class EHApiClient {
   private _cookies: ParsedCookie[] = [];
   private _exhentai = false;
   private _userAgent = "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15";
+  private _galleryInfoInFlight = new Map<string, Promise<EHGalleryDetail>>();
 
   get baseUrl(): string {
     return this._exhentai ? EX_BASE : EH_BASE;
@@ -43,6 +43,7 @@ export class EHApiClient {
 
   updateCookie(cookies: ParsedCookie[]): void {
     this._cookies = cookies;
+    this._galleryInfoInFlight.clear();
   }
 
   get cookies(): ParsedCookie[] {
@@ -52,12 +53,16 @@ export class EHApiClient {
   private getCookieString(): string {
     return this._cookies
       .filter((c) => {
-        const domain = c.domain || "";
-        return (
-          domain.includes("e-hentai.org") ||
-          domain.includes("exhentai.org") ||
-          domain === ""
-        );
+        const domain = (c.domain || "").trim().toLowerCase().replace(/^\./, "");
+        const allowedDomain =
+          domain === "" ||
+          domain === "e-hentai.org" ||
+          domain.endsWith(".e-hentai.org") ||
+          domain === "exhentai.org" ||
+          domain.endsWith(".exhentai.org");
+        const expiresAt = c.expires ? Date.parse(c.expires) : NaN;
+        const isExpired = Number.isFinite(expiresAt) && expiresAt <= Date.now();
+        return allowedDomain && !isExpired;
       })
       .map((c) => `${c.name}=${c.value}`)
       .join("; ");
@@ -99,7 +104,11 @@ export class EHApiClient {
   ): Promise<{ text: string; status: number; url: string }> {
     const base = options.baseUrl || this.baseUrl;
     const url = path.startsWith("http") ? path : `${base}${path}`;
-    const cookieStr = this.getCookieString();
+    const requestHost = new URL(url).hostname;
+    const isEHHost =
+      requestHost === "e-hentai.org" || requestHost.endsWith(".e-hentai.org") ||
+      requestHost === "exhentai.org" || requestHost.endsWith(".exhentai.org");
+    const cookieStr = isEHHost ? this.getCookieString() : "";
 
     const headers: Record<string, string> = {
       "User-Agent": this._userAgent,
@@ -121,14 +130,13 @@ export class EHApiClient {
       body = options.body;
     }
 
-    const timeout = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error("请求超时，请检查网络")), 15000),
-    );
-
-    
     let lastError: any = null;
     for (let attempt = 0; attempt < 2; attempt++) {
+      let timeoutId: any;
       try {
+        const timeout = new Promise<never>((_, reject) => {
+          timeoutId = setTimeout(() => reject(new Error("请求超时，请检查网络")), 15000);
+        });
         const resp = await Promise.race([
           fetch(url, {
             method: options.method || "GET",
@@ -138,6 +146,7 @@ export class EHApiClient {
           }),
           timeout,
         ]);
+        clearTimeout(timeoutId);
 
         const text = await resp.text();
 
@@ -147,19 +156,33 @@ export class EHApiClient {
           text.includes("cf-browser-verification") ||
           text.includes("Attention Required! Cloudflare")
         ) {
-          throw new Error("站点反爬校验拦截，请稍后重试");
+          const error: any = new Error("站点反爬校验拦截，请稍后重试");
+          error.retryable = true;
+          throw error;
         }
 
-        
         if (resp.status === 403 && this._exhentai) {
-          throw new Error(
+          const error: any = new Error(
             "里站访问被拒（403）：可能为 IP 受限、Cloudflare 拦截或会话已失效。请稍后重试；若持续失败，请在 Safari 打开 exhentai.org 确认可正常访问后，重新获取 Cookie"
           );
+          error.retryable = false;
+          throw error;
+        }
+        if (resp.status === 408 || resp.status === 429 || resp.status >= 500) {
+          lastError = new Error(`站点暂时不可用：HTTP ${resp.status}`);
+          lastError.retryable = true;
+          if (attempt === 0) {
+            await new Promise<void>((r) => setTimeout(() => r(), 800));
+            continue;
+          }
+          throw lastError;
         }
 
         return { text, status: resp.status, url: resp.url };
-      } catch (e) {
+      } catch (e: any) {
+        clearTimeout(timeoutId);
         lastError = e;
+        if (e?.retryable === false) throw e;
         if (attempt === 0) {
           await new Promise<void>((r) => setTimeout(() => r(), 800));
         }
@@ -178,26 +201,14 @@ export class EHApiClient {
    
   async getHome(page: number = 0, forceNetwork: boolean = false): Promise<EHGalleryListItem[]> {
     if (this._exhentai && !this.isLoggedIn) throw new Error("需要登录才能访问里站推荐");
-    // /home.php 是 My Home 账户设置页，不包含图库列表。表站 Front Page
-    // 允许访客访问；登录后则会额外应用账户侧标签、分类与显示过滤设置。
     const url = page === 0 ? "/" : `/?page=${page}`;
     return this.parseGalleryList(url, "home", forceNetwork);
   }
 
-  async getWatched(page: number = 0, forceNetwork: boolean = false): Promise<EHGalleryListItem[]> {
-    if (!this.isLoggedIn) throw new Error("需要登录才能访问订阅");
-    return this.parseGalleryList(`/watched?page=${page}`, "watched", forceNetwork);
-  }
-
   async getPopular(page: number = 0, forceNetwork: boolean = false): Promise<EHGalleryListItem[]> {
-    // Popular 是当前热门快照，站点没有分页控件；page 参数会被忽略。
     if (page > 0) return [];
     return this.parseGalleryList("/popular", "popular", forceNetwork);
   }
-
-  /**
-   * 浏览页使用站点原生 gid 游标翻页。现代 Front Page/分类搜索会忽略数字 page=N。
-   */
   async getBrowsePage(options: {
     type: "home" | "category";
     category?: EHCategory;
@@ -247,9 +258,6 @@ export class EHApiClient {
   async getUpload(page: number = 0): Promise<EHGalleryListItem[]> {
     return this.parseGalleryList(`/upload.php?page=${page}`, "upload");
   }
-
-  
-
   async search(options: SearchOptions, forceNetwork: boolean = false): Promise<EHGalleryListItem[]> {
     const path = this.buildSearchPath(options);
     const requestPath = forceNetwork
@@ -260,11 +268,6 @@ export class EHApiClient {
     } : undefined);
     return this.parseGalleryListHTML(text);
   }
-
-  /**
-   * 搜索专用的 20 条游标分页。站点原生每批返回 25 条，数字 page 参数会被忽略，
-   * 因此以当前页第 20 个图库的 gid 构造下一页游标，避免漏掉第 21～25 条。
-   */
   async searchPage(options: SearchOptions): Promise<EHGallerySearchPage> {
     const response = await this.request(this.buildSearchPath(options, true));
     const { text, status } = response;
@@ -368,14 +371,29 @@ export class EHApiClient {
   
 
   async getGalleryInfo(gid: number, token: string, page: number = 0): Promise<EHGalleryDetail> {
-    const url = `/g/${gid}/${token}/?p=${page}`;
-    const { text } = await this.request(url);
+    const key = `${this.baseUrl}:${gid}:${token}:${page}`;
+    const existing = this._galleryInfoInFlight.get(key);
+    if (existing) return existing;
 
-    if (text.includes("Gallery Not Available") || text.includes("content warning")) {
-      throw new Error("图库不可用");
+    const task = (async () => {
+      const url = `/g/${gid}/${token}/?p=${page}`;
+      const { text } = await this.request(url);
+
+      if (text.includes("Gallery Not Available") || /content warning/i.test(text)) {
+        throw new Error("图库不可用");
+      }
+      if (!/<(?:h1|div)\b[^>]*(?:id=["'](?:gn|gdc)|class=["'][^"']*gdt)/i.test(text)) {
+        throw new Error("图库详情页面结构无法识别，请稍后重试");
+      }
+
+      return this.parseGalleryDetail(text, gid, token, page);
+    })();
+    this._galleryInfoInFlight.set(key, task);
+    try {
+      return await task;
+    } finally {
+      if (this._galleryInfoInFlight.get(key) === task) this._galleryInfoInFlight.delete(key);
     }
-
-    return this.parseGalleryDetail(text, gid, token);
   }
 
   
@@ -397,45 +415,7 @@ export class EHApiClient {
     page: number,
     reloadKey?: string,
   ): Promise<EHPageInfo> {
-    
-    if (imgkey && !/^[a-f0-9]{32}$/i.test(imgkey)) {
-      return this.fetchImageInfoByShowpage(gid, imgkey, page);
-    }
-
-    const params: string[] = [`gid=${gid}`, `page=${page + 1}`, `key=${imgkey}`];
-    if (reloadKey) params.push(`nl=${reloadKey}`);
-
-    const { text } = await this.request(`/api.php?${params.join("&")}`, {
-      headers: {
-        "X-Requested-With": "XMLHttpRequest",
-        Accept: "application/json, text/javascript, */*; q=0.01",
-      },
-    });
-
-    try {
-      const data = JSON.parse(text);
-      if (data.error) {
-        throw new Error(data.error);
-      }
-
-      let imageUrl = data.i3 || data.i2 || data.i || data.src || "";
-      if (imageUrl && !imageUrl.startsWith("http")) {
-        
-        imageUrl = `https:${imageUrl}`;
-      }
-      
-      if (imageUrl) {
-        imageUrl = imageUrl.replace(/\\\//g, "/");
-      }
-
-      return {
-        imageUrl,
-        reloadKey: data.nl,
-        page,
-      };
-    } catch (e) {
-      throw new Error(`解析图片信息失败: ${e}`);
-    }
+    return this.fetchImageInfoByShowpage(gid, imgkey, page, reloadKey);
   }
 
    
@@ -443,24 +423,188 @@ export class EHApiClient {
     gid: number,
     showkey: string,
     page: number,
+    reloadKey?: string,
   ): Promise<EHPageInfo> {
-    const { text } = await this.request(`/s/${showkey}/${gid}-${page + 1}`, {
+    const reloadQuery = reloadKey ? `?nl=${encodeURIComponent(reloadKey)}` : "";
+    const { text } = await this.request(`/s/${showkey}/${gid}-${page + 1}${reloadQuery}`, {
       headers: { Accept: "text/html" },
     });
 
-    const imageUrl = this.extractImageUrl(text);
-    return { imageUrl, page };
+    return this.parseImagePageHTML(text, page);
+  }
+
+  async fetchImageInfoByShowpageAPI(
+    gid: number,
+    imgkey: string,
+    showkey: string,
+    page: number,
+  ): Promise<EHPageInfo> {
+    const { text } = await this.request("/api.php", {
+      method: "POST",
+      body: JSON.stringify({
+        method: "showpage",
+        gid,
+        page: page + 1,
+        imgkey,
+        showkey,
+      }),
+      headers: {
+        Accept: "application/json, text/javascript, */*; q=0.01",
+        "Content-Type": "application/json",
+        "X-Requested-With": "XMLHttpRequest",
+      },
+    });
+
+    let data: any;
+    try {
+      data = JSON.parse(text);
+    } catch (error) {
+      throw new Error(`解析 showpage 响应失败: ${error}`);
+    }
+    if (data.error) throw new Error(String(data.error));
+    const html = String(data.i3 || "");
+    const imageHTML = String(data.i3 || data.i || "");
+    const imageUrl = this.extractImageUrl(imageHTML);
+    if (!imageUrl) throw new Error("showpage 响应中没有有效图片");
+    const metadata = this.parseImageMetadata(String(data.i || ""));
+    return {
+      imageUrl,
+      page,
+      reloadKey: this.extractReloadKey(String(data.i6 || html)),
+      size: {
+        width: Number(data.x) || metadata.size?.width || 0,
+        height: Number(data.y) || metadata.size?.height || 0,
+      },
+      fileSize: metadata.fileSize,
+    };
+  }
+
+  async fetchImageInfoByImageDispatch(
+    gid: number,
+    imgkey: string,
+    mpvkey: string,
+    page: number,
+    reloadKey?: string,
+  ): Promise<EHPageInfo> {
+    const body: Record<string, number | string> = {
+      method: "imagedispatch",
+      gid,
+      page: page + 1,
+      imgkey,
+      mpvkey,
+    };
+    if (reloadKey) body.nl = reloadKey;
+    const { text } = await this.request("/api.php", {
+      method: "POST",
+      body: JSON.stringify(body),
+      headers: {
+        Accept: "application/json, text/javascript, */*; q=0.01",
+        "Content-Type": "application/json",
+        "X-Requested-With": "XMLHttpRequest",
+      },
+    });
+    let data: any;
+    try {
+      data = JSON.parse(text);
+    } catch (error) {
+      throw new Error(`解析 imagedispatch 响应失败: ${error}`);
+    }
+    if (data.error) throw new Error(String(data.error));
+    const imageUrl = this.normalizeResourceUrl(String(data.i || ""));
+    if (!imageUrl) throw new Error("imagedispatch 响应中没有有效图片");
+    const metadata = this.parseImageMetadata(String(data.d || ""));
+    const original = String(data.o || "").match(/Download original\s+(\d+)\s+x\s+(\d+)\s+(.+?)(?:\s+source)?$/i);
+    return {
+      imageUrl,
+      page,
+      reloadKey: data.s ? String(data.s) : undefined,
+      size: {
+        width: Number(data.xres) || metadata.size?.width || 0,
+        height: Number(data.yres) || metadata.size?.height || 0,
+      },
+      fileSize: metadata.fileSize,
+      fullSizeUrl: data.lf ? this.normalizeResourceUrl(String(data.lf)) : undefined,
+      fullSize: original ? { width: parseInt(original[1]), height: parseInt(original[2]) } : metadata.size,
+      fullFileSize: original?.[3] || metadata.fileSize,
+    };
+  }
+
+  private parseImagePageHTML(html: string, page: number): EHPageInfo {
+    const imageUrl = this.extractImageUrl(html);
+    if (!imageUrl) throw new Error("图片页面结构无法识别，请稍后重试");
+    const metadata = this.parseImageMetadata(html);
+    const showkey = this.extractShowkey(html);
+    const original = html.match(/<a\b[^>]*href=["']([^"']*\/fullimg\/[^"']+)["'][^>]*>[\s\S]*?Download original\s+(\d+)\s+x\s+(\d+)\s+([^<]+)</i);
+    return {
+      imageUrl,
+      page,
+      showkey: showkey || undefined,
+      reloadKey: this.extractReloadKey(html) || undefined,
+      size: metadata.size,
+      fileSize: metadata.fileSize,
+      fullSizeUrl: original ? this.normalizeResourceUrl(original[1]) : undefined,
+      fullSize: original ? { width: parseInt(original[2]), height: parseInt(original[3]) } : metadata.size,
+      fullFileSize: original?.[4]?.trim() || metadata.fileSize,
+    };
+  }
+
+  private parseImageMetadata(html: string): { size?: { width: number; height: number }; fileSize?: string } {
+    const text = html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ");
+    const match = text.match(/(?:^|::)\s*(\d+)\s*x\s*(\d+)\s*::\s*(\d+(?:\.\d+)?\s*(?:B|KB|MB|GB|KiB|MiB|GiB))\b/i) || text.match(/(\d+)\s*x\s*(\d+)\s*::\s*(\d+(?:\.\d+)?\s*\S+)/i);
+    if (!match) return {};
+    return {
+      size: { width: parseInt(match[1]), height: parseInt(match[2]) },
+      fileSize: match[3].trim(),
+    };
+  }
+
+  private extractShowkey(html: string): string {
+    return html.match(/\bvar\s+showkey\s*=\s*["']([^"']+)["']/i)?.[1] || "";
+  }
+
+  private extractReloadKey(html: string): string {
+    return html.match(/\b(?:return\s+)?nl\(\s*["']([^"']+)["']\s*\)/i)?.[1] || "";
   }
 
   async downloadImage(url: string): Promise<Uint8Array> {
-    const resp = await fetch(url, {
-      headers: {
-        Referer: this.baseUrl + "/",
-        "User-Agent": this._userAgent,
-      },
-    });
-    const arrayBuffer = await resp.arrayBuffer();
-    return new Uint8Array(arrayBuffer);
+    let lastError: any = null;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      let timeoutId: any;
+      try {
+        const timeout = new Promise<never>((_, reject) => {
+          timeoutId = setTimeout(() => reject(new Error("图片请求超时")), 15000);
+        });
+        const resp = await Promise.race([
+          fetch(url, {
+            headers: {
+              Referer: this.baseUrl + "/",
+              "User-Agent": this._userAgent,
+            },
+          }),
+          timeout,
+        ]);
+        clearTimeout(timeoutId);
+        if (!resp.ok) {
+          const error: any = new Error(`图片请求失败：HTTP ${resp.status}`);
+          error.retryable = resp.status === 408 || resp.status === 429 || resp.status >= 500;
+          throw error;
+        }
+        const contentType = resp.headers.get("content-type") || "";
+        if (contentType && !contentType.toLowerCase().startsWith("image/")) {
+          const error: any = new Error(`图片响应类型异常：${contentType}`);
+          error.retryable = contentType.toLowerCase().includes("text/html");
+          throw error;
+        }
+        const arrayBuffer = await resp.arrayBuffer();
+        return new Uint8Array(arrayBuffer);
+      } catch (e: any) {
+        clearTimeout(timeoutId);
+        lastError = e;
+        if (e?.retryable === false || attempt > 0) break;
+        await new Promise<void>((r) => setTimeout(() => r(), 500));
+      }
+    }
+    throw lastError || new Error("图片请求失败");
   }
 
   
@@ -525,8 +669,25 @@ export class EHApiClient {
         
       }
     }
+    if (results.length > 0) return results;
 
-    
+    // 账户显示设置或站点小改版可能改变 td 属性顺序与额外 class，
+    // 用 class 名宽松提取，避免推荐页因旧正则过严而单独失败。
+    const flexibleRows = /<tr\b[^>]*>([\s\S]*?)<\/tr>/gi;
+    let flexibleMatch;
+    while ((flexibleMatch = flexibleRows.exec(html)) !== null) {
+      const row = flexibleMatch[1];
+      const cat = row.match(/<td\b[^>]*class="[^"]*\bgl1c\b[^"]*"[^>]*>([\s\S]*?)<\/td>/i)?.[1];
+      const thumb = row.match(/<td\b[^>]*class="[^"]*\bgl2c\b[^"]*"[^>]*>([\s\S]*?)<\/td>/i)?.[1];
+      const name = row.match(/<td\b[^>]*class="[^"]*\bgl3c\b[^"]*"[^>]*>([\s\S]*?)<\/td>/i)?.[1];
+      const info = row.match(/<td\b[^>]*class="[^"]*\bgl4c\b[^"]*"[^>]*>([\s\S]*?)<\/td>/i)?.[1];
+      if (cat === undefined || thumb === undefined || name === undefined || info === undefined) continue;
+      try {
+        const item = this.parseItgRow(cat, thumb, name, info);
+        if (item) results.push(item);
+      } catch {}
+    }
+
     if (results.length === 0) {
       const rowRegex = /<tr class="(gtr0|gtr1)">([\s\S]*?)<\/tr>/g;
       const rows: string[] = [];
@@ -797,7 +958,7 @@ export class EHApiClient {
     };
   }
 
-  private parseGalleryDetail(html: string, gid: number, token: string): EHGalleryDetail {
+  private parseGalleryDetail(html: string, gid: number, token: string, detailPage: number = 0): EHGalleryDetail {
     
     const titleMatch = html.match(/<h1 id="gn">([^<]+)<\/h1>/);
     const title1Match = html.match(/<h1 id="gj">([^<]+)<\/h1>/);
@@ -913,7 +1074,7 @@ export class EHApiClient {
     const commentCount = comments.length;
 
     
-    const images = this.parseImages(html);
+    const images = this.parseImages(html, detailPage);
 
     
     const pageCount = images.length > 0 ? Math.max(...images.map(i => i.page)) + 1 : undefined;
@@ -1065,20 +1226,28 @@ export class EHApiClient {
     return tags;
   }
 
-  private parseImages(html: string): EHImageItem[] {
+  private parseImages(html: string, detailPage: number = 0): EHImageItem[] {
     const images: EHImageItem[] = [];
 
     
     
-    const spriteRegex =
-      /<a href="[^"]*\/s\/([a-f0-9]+)\/(\d+)-(\d+)"><div title="Page \d+: ([^"]*)"[^>]*style="[^"]*url\(([^)]+)\)\s*(-?\d+)px\s+0\s+no-repeat"[^>]*>/g;
+    const spriteRegex = /<a\b[^>]*href=["'][^"']*\/s\/([^/?#]+)\/(\d+)-(\d+)[^"']*["'][^>]*>\s*<div\b([^>]*)>/gi;
     let spriteMatch;
     while ((spriteMatch = spriteRegex.exec(html)) !== null) {
+      const attributes = spriteMatch[4];
+      const titleMatch = attributes.match(/\btitle=["']Page\s+\d+:\s*([^"']*)["']/i);
+      const styleMatch = attributes.match(/\bstyle=["'][^"']*url\(\s*(?:["']?)([^)"']+)(?:["']?)\s*\)\s*(-?\d+)(?:px)?\s+(-?\d+)(?:px)?(?:\s+no-repeat)?[^"']*["']/i);
+      if (!styleMatch) continue;
       const showkey = spriteMatch[1];
-      const pageNum = parseInt(spriteMatch[3]); 
-      const name = this.decodeHTML(spriteMatch[4].trim());
-      const spriteUrl = this.normalizeThumbnailUrl(spriteMatch[5]);
-      const spriteX = parseInt(spriteMatch[6]); 
+      const pageNum = parseInt(spriteMatch[3]);
+      const name = titleMatch ? this.decodeHTML(titleMatch[1].trim()) : String(pageNum);
+      const spriteUrl = this.normalizeThumbnailUrl(styleMatch[1]);
+      const spriteX = parseInt(styleMatch[2]);
+      const spriteY = parseInt(styleMatch[3]);
+      const widthMatch = attributes.match(/\bwidth\s*:\s*(\d+)px/i);
+      const heightMatch = attributes.match(/\bheight\s*:\s*(\d+)px/i);
+      const spriteWidth = widthMatch ? parseInt(widthMatch[1]) : undefined;
+      const spriteHeight = heightMatch ? parseInt(heightMatch[1]) : undefined;
       images.push({
         page: pageNum - 1,
         name,
@@ -1086,12 +1255,16 @@ export class EHApiClient {
         thumbnailUrl: spriteUrl,
         showkey,
         spriteX,
+        spriteY,
+        spriteWidth,
+        spriteHeight,
       });
     }
     if (images.length > 0) return images;
 
     
-    const gdtmRegex = /<div class="gdtm"[^>]*>[\s\S]*?<div[^>]*style="[^"]*width:(\d+)[^"]*">[\s\S]*?<a href="([^"]*)">[\s\S]*?<img[^>]*src="([^"]*)"[^>]*alt="([^"]*)"/g;
+    const pageStart = this.extractDetailPageStart(html, detailPage);
+    const gdtmRegex = /<div class=["'][^"']*\bgdtm\b[^"']*["'][^>]*>[\s\S]*?<div[^>]*style=["'][^"']*width:\s*(\d+)[^"']*["'][^>]*>[\s\S]*?<a\b[^>]*href=["']([^"']*)["'][^>]*>[\s\S]*?<img\b[^>]*src=["']([^"']*)["'][^>]*alt=["']([^"']*)["']/gi;
     let match;
     let pageIndex = 0;
 
@@ -1101,10 +1274,11 @@ export class EHApiClient {
       const thumbnailUrl = this.normalizeThumbnailUrl(match[3]);
 
       const imgkey = this.extractImgkey(href, thumbnailUrl);
+      const absolutePage = this.extractGalleryImagePage(href) ?? (pageStart + pageIndex);
 
       images.push({
-        page: pageIndex,
-        name: `${pageIndex + 1}`,
+        page: absolutePage,
+        name: `${absolutePage + 1}`,
         imgkey: imgkey || "",
         thumbnailUrl,
         width,
@@ -1114,16 +1288,17 @@ export class EHApiClient {
 
     
     if (images.length === 0) {
-      const gdtlRegex = /<div class="gdtl"[^>]*>[\s\S]*?<a href="([^"]*)">[\s\S]*?<img[^>]*src="([^"]*)"[^>]*alt="([^"]*)"/g;
+      const gdtlRegex = /<div class=["'][^"']*\bgdtl\b[^"']*["'][^>]*>[\s\S]*?<a\b[^>]*href=["']([^"']*)["'][^>]*>[\s\S]*?<img\b[^>]*src=["']([^"']*)["'][^>]*alt=["']([^"']*)["']/gi;
       pageIndex = 0;
       while ((match = gdtlRegex.exec(html)) !== null) {
         const href = match[1];
         const thumbnailUrl = this.normalizeThumbnailUrl(match[2]);
         const imgkey = this.extractImgkey(href, thumbnailUrl);
+        const absolutePage = this.extractGalleryImagePage(href) ?? (pageStart + pageIndex);
 
         images.push({
-          page: pageIndex,
-          name: `${pageIndex + 1}`,
+          page: absolutePage,
+          name: `${absolutePage + 1}`,
           imgkey: imgkey || "",
           thumbnailUrl,
         });
@@ -1157,26 +1332,40 @@ export class EHApiClient {
   }
 
   private extractImageUrl(html: string): string {
-    const match = html.match(/<img[^>]*id="img"[^>]*src="([^"]+)"/);
-    if (match) return this.normalizeThumbnailUrl(match[1]);
-    const match2 = html.match(/src="(https?:\/\/[^"]+(?:ehgt\.org|hath\.network|s\.exhentai\.org)[^"]*)"/);
-    if (match2) return this.normalizeThumbnailUrl(match2[1]);
+    const imageTag = html.match(/<img\b[^>]*\bid=["']img["'][^>]*>/i);
+    const source = imageTag?.[0].match(/\b(?:src|data-src|data-original|data-lazy-src)=["']([^"']+)["']/i)?.[1];
+    if (source) return this.normalizeResourceUrl(source);
+    const imageSource = html.match(/<img\b[^>]*(?:src|data-src|data-original|data-lazy-src)=["']((?:https?:)?\/\/[^"']+)["'][^>]*>/i)?.[1];
+    if (imageSource && /(?:ehgt\.org|hath\.network|exhentai\.org|e-hentai\.org)/i.test(imageSource)) {
+      return this.normalizeResourceUrl(imageSource);
+    }
     return "";
   }
 
+  private extractGalleryImagePage(href: string): number | null {
+    const match = href.match(/\/s\/[^/?#]+\/\d+-(\d+)(?:[/?#]|$)/i);
+    if (!match) return null;
+    const oneBasedPage = parseInt(match[1]);
+    return Number.isFinite(oneBasedPage) && oneBasedPage > 0 ? oneBasedPage - 1 : null;
+  }
+
   private extractImgkey(href: string, thumbnailUrl: string): string {
-    
-    const thumbMatch = thumbnailUrl.match(/\/([a-f0-9]{32,})\//);
+    const showpageMatch = href.match(/\/s\/([^/?#]+)\/\d+-(?:\d+)(?:[/?#]|$)/i);
+    if (showpageMatch) return showpageMatch[1];
+    const keyMatch = href.match(/[?&]key=([^&#]+)/i);
+    if (keyMatch) return keyMatch[1];
+    const thumbMatch = thumbnailUrl.match(/\/([a-f0-9]{32,})\//i);
     if (thumbMatch) return thumbMatch[1];
-
-    
-    const hrefMatch = href.match(/key=([a-f0-9]+)/);
-    if (hrefMatch) return hrefMatch[1];
-
-    const hrefMatch2 = href.match(/\/([a-f0-9]{32,})\//);
-    if (hrefMatch2) return hrefMatch2[1];
-
     return "";
+  }
+
+  private extractDetailPageStart(html: string, detailPage: number): number {
+    const showingMatch = html.match(/\bShowing\s+(\d+)\s*-\s*(\d+)\b/i);
+    if (showingMatch) {
+      const start = parseInt(showingMatch[1], 10);
+      if (Number.isFinite(start) && start > 0) return start - 1;
+    }
+    return detailPage * 20;
   }
 
   private parseCategory(cat: string): any {
@@ -1211,17 +1400,32 @@ export class EHApiClient {
   }
 
    
-  private normalizeThumbnailUrl(url: string): string {
+  private normalizeResourceUrl(url: string): string {
     if (!url) return url;
-    return url.replace(/^https?:\/\/s\.exhentai\.org\//, "https://ehgt.org/");
+    const decoded = url.replace(/&amp;/gi, "&").replace(/\\\//g, "/").trim();
+    if (decoded.startsWith("//")) return `https:${decoded}`;
+    if (decoded.startsWith("/")) return `${this.baseUrl}${decoded}`;
+    if (/^https?:\/\//i.test(decoded)) return decoded;
+    if (/^(?:s\/|fullimg(?:\/|\?))/i.test(decoded)) return `${this.baseUrl}/${decoded}`;
+    return decoded;
+  }
+
+  private normalizeThumbnailUrl(url: string): string {
+    const normalized = this.normalizeResourceUrl(url);
+    if (!normalized) return normalized;
+    return normalized.replace(/^https?:\/\/s\.exhentai\.org\//i, "https://ehgt.org/");
   }
 
   
 
   async validateLogin(): Promise<boolean> {
     try {
-      const { text } = await this.request("/home.php");
-      return text.includes("nb") || text.includes("loggedin");
+      const { text, status, url } = await this.request("/home.php", { baseUrl: EH_BASE });
+      if (status < 200 || status >= 300) return false;
+      if (/\/bounce_login\.php(?:\?|$)/i.test(url)) return false;
+      if (/this page requires you to log on/i.test(text)) return false;
+      return /(?:uconfig\.php|favorites\.php|mytags|stats\.php|hentaiathome\.php)/i.test(text) ||
+        /(?:uconfig\.php|favorites\.php|mytags|stats\.php|hentaiathome\.php)/i.test(url);
     } catch {
       return false;
     }
@@ -1229,7 +1433,7 @@ export class EHApiClient {
 
   
   getLoginUrl(): string {
-    return `${this.baseUrl}/home.php`;
+    return `${EH_BASE}/bounce_login.php?b=d&bt=1-1`;
   }
 }
 

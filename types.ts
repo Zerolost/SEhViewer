@@ -1,5 +1,3 @@
-
-
 export type EHCategory =
   | "Doujinshi"
   | "Manga"
@@ -51,7 +49,6 @@ export interface EHGalleryListItem {
   englishTitle?: string;
   japaneseTitle?: string;
   thumbnailUrl: string;
-  /** E-Hentai 列表缩略图的实际显示尺寸，不是详情页完整图尺寸。 */
   thumbnailWidth?: number;
   thumbnailHeight?: number;
   category: EHCategory;
@@ -132,13 +129,22 @@ export interface EHImageItem {
   width?: number;
   height?: number;
   showkey?: string;
-   
+  
   spriteX?: number;
+  spriteY?: number;
+  spriteWidth?: number;
+  spriteHeight?: number;
 }
 
 export interface EHPageInfo {
   imageUrl: string;
   reloadKey?: string;
+  showkey?: string;
+  fileSize?: string;
+  size?: { width: number; height: number };
+  fullSizeUrl?: string;
+  fullSize?: { width: number; height: number };
+  fullFileSize?: string;
   page: number;
 }
 
@@ -154,7 +160,6 @@ export interface GidToken {
   token: string;
 }
 
-/** 浏览页单批结果及站点原生向后游标；热门等不可翻页数据源不会返回 nextCursor。 */
 export interface EHGalleryBrowsePage {
   items: EHGalleryListItem[];
   nextCursor?: number;
@@ -164,9 +169,7 @@ export interface SearchOptions {
   keyword?: string;
   categories?: EHCategory[];
   excludedCategories?: EHCategory[];
-  /** 旧式数字页码，仅供主页分类列表兼容使用。搜索结果分页请使用 cursor。 */
   page?: number;
-  /** E-Hentai 搜索列表使用图库 gid 作为向后翻页游标。 */
   cursor?: number;
   minRating?: number;
   minPages?: number;
@@ -183,7 +186,6 @@ export interface SearchOptions {
   fSearch?: string;
 }
 
-/** 单次搜索响应的轻量分页信息；items 固定最多 20 条。 */
 export interface EHGallerySearchPage {
   items: EHGalleryListItem[];
   totalCount: number;
@@ -199,7 +201,6 @@ export type EdgeAction = "prev" | "next" | "none";
 export interface Config {
   cookie: string;
   exhentai: boolean;
-  githubToken: string;
   pageDirection: "left_to_right" | "right_to_left" | "vertical";
    
   readerMode: ReaderMode;
@@ -208,19 +209,20 @@ export interface Config {
   rightEdgeAction: EdgeAction;
   autoClearCache: boolean;
   autoCacheWhenReading: boolean;
+  hideAIContent: boolean;
   appearance: AppearanceMode;
 }
 
 export const defaultConfig: Config = {
   cookie: "",
   exhentai: false,
-  githubToken: "",
   pageDirection: "right_to_left",
   readerMode: "swipe",
   leftEdgeAction: "prev",
   rightEdgeAction: "next",
   autoClearCache: false,
   autoCacheWhenReading: false,
+  hideAIContent: false,
   appearance: "system",
 };
 
