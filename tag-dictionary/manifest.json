@@ -1,0 +1,14 @@
+{
+  "formatVersion": 1,
+  "dictionaryVersion": 7,
+  "sourceCommit": "9026344c7a917fac8a6709954e04f0b33ec31589",
+  "payloadUrl": "payload-v7-9026344c7a91.json",
+  "recordCount": 43900,
+  "namespaceCount": 12,
+  "payloadBytes": 1805614,
+  "sha256": "ec56fc5a7ec638096268174472df22b91191c12208b7e5358dbeb8b22e206fe0",
+  "source": "EhTagTranslation/Database",
+  "sourceUrl": "https://github.com/EhTagTranslation/Database",
+  "license": "CC BY-NC-SA 3.0 CN",
+  "licenseUrl": "https://github.com/EhTagTranslation/Database/blob/master/LICENSE.md"
+}
